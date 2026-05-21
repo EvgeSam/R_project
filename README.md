@@ -52,6 +52,3 @@ ggrepel
 
 <https://clauswilke.com/blog/2020/09/07/pca-tidyverse-style/>
 
-## Presentation
-
-<file:///C:/Users/Evge/Desktop/R/r_project/doc/presentation.html#/title-slide/>
