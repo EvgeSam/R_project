@@ -1,0 +1,181 @@
+---
+title: "05_Analysis_01"
+format: html
+editor: visual
+---
+
+# Differential gene expression analysis
+
+## Load libraries
+
+```{r setup, warning = FALSE , message=FALSE}
+
+library("tidyverse")
+library("here")
+library("DESeq2")
+library("ggrepel")
+```
+
+## Load the data
+
+```{r}
+
+sample_table_DESeq = read_tsv(here("data/03_sample_table_DESeq.tsv"),
+                         show_col_types = FALSE)
+
+count_data_clean_DESeq = read_tsv(here("data/02_count_data_clean_DESeq.tsv"),
+                         show_col_types = FALSE)
+```
+
+Differential gene expression analysis will be conducted using the R package "DESeq2". The objective is to identify genes that are significantly differently expressed among patients with lung adenocarcinoma across three distinct groups: light, medium and heavy smokers. Identifying these genes will give insights into the biological pathways influenced by smoking intensity in lung adenocarcinoma.
+
+### Step 1: Preparing data for analysis and running DESeq2 pipeline
+
+```{r}
+
+# Converting column named "gene" into row names (genes)
+
+count_data_clean_DESeq <- count_data_clean_DESeq |>
+  column_to_rownames(var = "gene")
+
+# Convert smoker_groups variable to a factor
+
+sample_table_DESeq <- sample_table_DESeq |>
+  mutate(smoker_groups = factor(smoker_groups, 
+                                levels = c("light", "medium", "heavy")))
+
+# Create a DESeq2 Dataset
+
+dds <- DESeqDataSetFromMatrix(
+  countData = count_data_clean_DESeq, 
+  colData = sample_table_DESeq,
+  design= ~ smoker_groups
+)
+
+# Runs DESeq2 pipeline
+
+dds <- DESeq(dds)
+
+# Lists the coefficients
+
+resultsNames(dds) 
+```
+
+### Step 2: Results Extraction
+
+1.  Results from DESeq analysis are extracted specifying the groups to be compared and the level of significance.
+
+```{r}
+
+# Extract result
+res <- results(
+  dds, 
+  contrast = list(c("smoker_groups_heavy_vs_light", 
+                    "smoker_groups_medium_vs_light")),
+  alpha=0.05)
+
+# Summerize results
+
+summary(res)
+```
+
+2.  Convert results from DESeq to a tidy data frame, select "gene", "log2FoldChange", "pvalue" and "padj" columns.
+
+```{r}
+
+res_tidy <- res |>
+  as_tibble(rownames = "gene") |>
+  select(gene, log2FoldChange, pvalue, padj)
+```
+
+### Step 3: Plotting the significant up/down regulated genes.
+
+Create a volcano plot to visualize the distribution of significant genes.
+
+As we can see in the plot most genes are not significantly differentially expressed, clustering near log2FC = 0 and with low significance, adjusted p-value \> 0.05.
+
+Labeled genes: DIRAS3, BNC1, AMBP, BARX1, ASCL1 are likely candidates for further biological investigation. They have both large fold changes and significant p-values.
+
+```{r}
+
+genes <- c("AMBP", "ASCL1", "BARX1", "DIRAS3", "BNC1")
+
+# Add to the plot
+
+ggplot(res_tidy, aes(x = log2FoldChange, y = -log10(pvalue))) +
+  geom_point(aes(color = ifelse(!is.na(padj) & padj < 0.05 & abs(log2FoldChange) > 2,
+                                "Significant", 
+                                "Not significant")),
+             alpha = 0.8) +
+  labs(title = "Volcano plot for down/up regulated genes with significance < 0.05",
+       color = "Significant/ Unsignificant", 
+       x = "log2FC",
+       y = "-log10(pvalue)") +
+  geom_point(data = res_tidy |> filter (gene %in% genes), 
+             size=2,
+             color = "black") +
+  geom_label_repel(data = res_tidy |> filter (gene %in% genes), 
+                   aes(label=gene),
+                   size=2,
+                   color = "black", 
+                   max.overlaps=Inf,
+                   segment.color="transparent") +
+  theme_minimal()
+
+ggsave(here("results/05_volcano_plot.png"),
+       plot= last_plot())
+```
+
+### Step 4: Extracting Relevant Information
+
+1.  Extract significant differently expressed genes: Filter genes with values of "log2FoldChange" \> 2 and p-value \< 0.05.
+
+```{r}
+
+significant_genes <- res_tidy |>
+  filter(padj<0.05 & abs(log2FoldChange)>2) |>
+  select(gene)
+```
+
+2.  Extract normalized counts: Normalization accounts for sequencing depth, library size and other systematic difference in the samples.
+
+```{r}
+
+normalized_counts <- counts(dds, normalized=TRUE)
+```
+
+3.  Transform data to a tidy format
+
+```{r}
+
+normalized_counts_flipped <- normalized_counts |>
+  as_tibble(rownames = "Gene") |>
+  pivot_longer(cols = -Gene, 
+               names_to = "Sample", 
+               values_to = "Count") |>
+  pivot_wider(names_from = "Gene", 
+              values_from = "Count")
+```
+
+```{r}
+class(normalized_counts_flipped)
+```
+
+### Step 5: Save Data
+
+```{r}
+
+write.csv(normalized_counts, 
+          here("data/05_normalized_counts.csv"))
+```
+
+```{r}
+
+write_tsv(normalized_counts_flipped, 
+          here("data/05_normalized_counts_flipped.tsv"))
+```
+
+```{r}
+
+write.csv(significant_genes, here("data/05_significant_genes.csv"))
+```

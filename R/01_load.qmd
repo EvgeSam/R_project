@@ -1,0 +1,92 @@
+---
+title: "01_load"
+format: html
+editor: visual
+knitr:
+  opts_chunk:
+    warning: false
+---
+
+## Uploading libraries for the entire project
+
+```{r setup, warning = FALSE , message=FALSE}
+
+library("tidyverse")
+library("here")
+```
+
+## Loading files
+
+In this project we are working with three input files: One with the counts data, one with clinical data, and one that maps the gene IDs to the Ensembl IDs.
+
+Count data:
+
+```{r}
+count_data = read_tsv(
+  here("_raw/TCGA-LUAD.star_counts.tsv.gz"),
+  show_col_types = FALSE)
+```
+
+Clinical data:
+
+```{r}
+
+clinical_data = read_tsv(
+  here("_raw/TCGA-LUAD.clinical.tsv.gz"),
+  show_col_types = FALSE)
+```
+
+Mapping of Ensembl and gene ids:
+
+```{r}
+ensembl_to_gene_symbol = read_tsv(
+  here("_raw/gencode.v36.annotation.gtf.gene.probemap"),
+  show_col_types = FALSE)
+```
+
+## Save the files into separate tsv files in the data folder
+
+We will create a data directory to store files and presentation objects:
+
+```{r}
+
+dir.create(here("data"))
+```
+
+```{r}
+
+write_tsv(count_data, 
+          here("data/01_count_data_load.tsv"))
+```
+
+```{r}
+
+write_tsv(clinical_data, 
+          here("data/01_clinical_data_load.tsv"))
+```
+
+```{r}
+
+write_tsv(ensembl_to_gene_symbol, 
+          here("data/01_ensembl_to_gene_symbol_load.tsv"))
+```
+
+## Save the files into separate rsd files in the presentation_data folder
+
+```{r}
+
+saveRDS(count_data,
+        file = here("doc/presentation_data/01_count_data.rds"))
+```
+
+```{r}
+
+saveRDS(clinical_data, 
+        file = here("doc/presentation_data/01_clinical_data.rds"))
+```
+
+```{r}
+
+saveRDS(ensembl_to_gene_symbol, 
+        file = here("doc/presentation_data/01_gene_ensembl.rds"))
+```

@@ -1,0 +1,156 @@
+---
+title: "Exploration and differential gene-expression analysis of TCGA - LUAD samples"
+format: revealjs
+editor: visual
+---
+
+```{r}
+library(knitr)
+library(kableExtra)
+library(tidyverse)
+
+```
+
+## Introduction
+
+- Lung adenocarcinoma is the primary cause of cancer-related death worldwide.
+
+- Smoking accounts for 80-90 % of the lung cancer cases.
+
+- The aim of the project is to analyse differential gene expression between heavy, medium and light smokers to understand the impact of varying smoking intensities on lung adenocarcinoma samples.
+
+::: footer
+Tonya Walser, Xiaoyan Cui, Jane Yanagawa, Jay M. Lee, Eileen Heinrich, Gina Lee, Sherven Sharma, and Steven M. Dubinett. Smoking and Lung Cancer. Proceedings of the American Thoracic Society, 5(8):811–815, December 2008. ISSN 1546-3222. doi: 10.1513/pats.200809-100TH
+:::
+
+```{r}
+
+
+# Load Data
+count_data <- readRDS("presentation_data/01_count_data.rds") 
+clinical_data <- readRDS("presentation_data/01_clinical_data.rds") 
+gene_ensembl <- readRDS("presentation_data/01_gene_ensembl.rds")
+
+# Subset the data to not load it all into the presentation
+count_data_subset <- count_data[1:15, 1:10]
+clinical_data_subset <- clinical_data[1:15,]
+gene_ensembl_subset <- gene_ensembl[1:15,1:2]
+
+```
+
+## Materials
+
+```{r, results='asis'}
+
+#Sources: https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html
+
+#https://bookdown.org/yihui/rmarkdown-cookbook/kable.html
+
+#https://bookdown.org/yihui/rmarkdown-cookbook/kableextra.html
+
+# Clinical Data Table
+cat("
+<div style='width: 100%; 
+            text-align: center; 
+            margin-bottom: 0.5em; 
+            font-size: 12px;'>
+  <h3 style='margin: 0.3em 0;
+            '>Clinical Data</h3>
+  <div style='width: 100%; 
+              height: 250px; 
+              overflow-y: auto;'>
+")
+kable(clinical_data_subset, 
+      format = "html", 
+      table.attr = "style='width: 100%; 
+                    border-collapse: collapse; 
+                    font-size: 12px;'") |>
+  kable_styling("striped", 
+                full_width = TRUE, 
+                font_size = 15) |>
+  cat()
+cat("</div></div>")
+
+# Count Data Table
+cat("
+<div style='width: 65%; 
+            text-align: center; 
+            float: left; 
+            margin-right: 0.5%; 
+            font-size: 12px;'>
+  <h3 style='margin: 0.3em 0;
+            '>Count Data</h3>
+  <div style='width: 100%; 
+              height: 250px; 
+              overflow-y: auto;'>
+")
+kable(count_data_subset, 
+      format = "html", 
+      table.attr = "style='width: 100%; 
+                    border-collapse: collapse; 
+                    font-size: 12px;'") |>
+  kable_styling("striped", 
+                full_width = TRUE, 
+                font_size = 15) |>
+  cat()
+cat("</div></div>")
+
+# Ensembl Data Table
+cat("
+<div style='width: 30%; 
+            text-align: center; 
+            float: right; 
+            font-size: 12px;'>
+  <h3 style='margin: 0.3em 0;
+            '>Ensembl Data</h3>
+  <div style='width: 100%; 
+              height: 250px; 
+              overflow-y: auto;'>
+")
+kable(gene_ensembl_subset, 
+      format = "html", 
+      table.attr = "style='width: 100%; 
+                    border-collapse: collapse; 
+                    font-size: 12px;'") |>
+  kable_styling("striped", 
+                full_width = TRUE, 
+                font_size = 15) |>
+  cat()
+cat("</div></div>")
+```
+
+## Methods: Workflow
+
+![](photos/workflow.png){width="100%"}
+
+## Methods: Sample description
+
+<img src="../results/04_samples_per_gender_race.png" alt="Sample description" style="width:80%; height:80%;"/>
+
+## Methods: Sample description
+
+<img src="../results/04_samples_per_smoker_group.png" alt="Sample description" style="width:80%; height:80%;"/>
+
+## Methods: DESeq2
+
+DESeq2 performs these following steps to identify whether a gene is differentially expressed or not:
+
+- Estimate Size Factor
+- Estimates Dispersion
+- Fits a Generalized Linear Model: For each gene, DESeq fits a negative binomial distribution.
+- Hypothesis testing
+- Identify Differentially Expressed Genes: Genes are classified as expressed based on user defined threshold for Log2FC and P-value
+
+## DESeq Results: Volcano Plot
+
+![](../results/05_volcano_plot.png)
+
+## Results: PCA Biplot
+
+![](../results/06_pca_biplot_gender.png)
+
+## Discussion
+
+- From the differential expression analysis, **DIRAS3, BNC1, AMBP, BARX1, and ASCL1** appear as strong candidates for further investigation. These genes have both significant fold changes and statistically robust p-values, making them ideal for prioritization in downstream analyses such as pathway enrichment or functional annotation.
+
+- PCA Biplot shows that other biological variables, like gender, should have been accounted for in modeling during the differential expression analysis.

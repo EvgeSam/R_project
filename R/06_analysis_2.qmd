@@ -1,0 +1,105 @@
+---
+title: "05_analysis_2"
+format: html
+editor: visual
+---
+
+## Load libraries
+
+```{r setup, warning = FALSE , message=FALSE}
+
+library("tidyverse")
+library("here")
+library("ggrepel")
+library("broom")
+```
+
+## Load the data and functions
+
+```{r}
+
+sample_table_DESeq = read_tsv(here("data/03_sample_table_DESeq.tsv"),
+                              show_col_types = FALSE)
+
+clinical_data_augment = read_tsv(here("data/03_clinical_data_augment.tsv"),
+                                 show_col_types = FALSE)
+
+normalized_counts_flipped = read_tsv(here("data/05_normalized_counts_flipped.tsv"),
+                                     show_col_types = FALSE)
+
+significant_genes = read_csv(here("data/05_significant_genes.csv"),
+                                     show_col_types = FALSE)
+
+source("07_pca_plotting.R")
+```
+
+## PCA analysis
+
+Get the genes that are highly differentially expressed in DESeq (padj \< 0.05 & abs(log2FoldChange) \> 2) and do a PCA analysis to reduce the complexity of the data and allow for an easier visualization.
+
+Our point is to see if there were any other variables that could have been added to our DGE analysis, and help guide those who are trying to improve our results. For that, we chose some variables which we think could cause confounding effects.
+
+The analysis steps were gathered from: <https://clauswilke.com/blog/2020/09/07/pca-tidyverse-style/>
+
+```{r}
+
+sample_table_DESeq <- sample_table_DESeq |>
+  left_join(clinical_data_augment |>
+              select(sample, 
+                     race.demographic, 
+                     gender.demographic, 
+                     ajcc_pathologic_stage.diagnoses, 
+                     vital_status.demographic, 
+                     tissue_or_organ_of_origin.diagnoses, 
+                     ajcc_pathologic_m.diagnoses),
+    by="sample")
+
+normalized_counts_flipped <- normalized_counts_flipped |>
+  column_to_rownames(var = "Sample")
+```
+
+Fit the PCA
+
+```{r}
+
+pca_fit <- normalized_counts_flipped |>
+  select(where(is.numeric)) |>
+  select(where(~sum(.)!=0)) |>
+  select(all_of(significant_genes$gene)) |>
+  prcomp(scale = TRUE) 
+```
+
+Calculate variance explained of each of the PCs
+
+```{r}
+
+variance_explained <- summary(pca_fit)$importance[2, ] * 100  
+pc1_var <- round(variance_explained[1], 2)  
+pc2_var <- round(variance_explained[2], 2)
+```
+
+Plot the biplots:
+
+```{r}
+pca_plotting(color_by = "gender.demographic", PCAtitle = "PCA Plot of Samples Colored by Gender", Legendname = "Gender")
+
+ggsave(here("results/06_pca_biplot_gender.png"),
+       plot= last_plot())
+```
+
+```{r}
+
+pca_plotting("race.demographic", PCAtitle = "PCA Plot of Samples Colored by Race", Legendname = "Race")
+```
+
+```{r}
+
+pca_plotting("ajcc_pathologic_stage.diagnoses", PCAtitle = "PCA Plot of Samples Colored by Stage of Cancer", Legendname = "Stage of Cancer")
+```
+
+```{r}
+
+pca_plotting("ajcc_pathologic_m.diagnoses", PCAtitle = "PCA Plot of Samples Colored by Metastasis Stage of Cancer", Legendname = "Metastasis Stage of Cancer")
+```
+
+The PCA analysis indicates that gender may account for some of the variation in the data set that we did not consider in our original analysis. For future analysis, we recommend including gender as a confounding factor in the model.

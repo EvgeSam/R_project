@@ -1,0 +1,40 @@
+---
+title: "00_all"
+format: html
+editor: visual
+---
+
+**Script to run all the qmd files to perform the analysis**
+
+```{r}
+library("quarto")
+```
+
+```{r}
+quarto_render(input = "01_load.qmd")
+file.rename("01_load.html","../results/01_load.html")
+file.rename("01_load_files", file.path("../results", "01_load_files"))
+
+
+quarto_render(input = "02_clean.qmd")
+file.rename("02_clean.html","../results/02_clean.html")
+file.rename("02_clean_files", file.path("../results", "02_clean_files"))
+
+
+quarto_render(input = "03_augment.qmd")
+file.rename("03_augment.html","../results/03_augment.html")
+file.rename("03_augment_files", file.path("../results", "03_augment_files"))
+
+quarto_render(input = "04_describe.qmd")
+file.rename("04_describe.html","../results/04_describe.html")
+file.rename("04_describe_files", file.path("../results", "04_describe_files"))
+
+quarto_render(input = "05_analysis_1.qmd")
+file.rename("05_analysis_1.html","../results/05_analysis_1.html")
+file.rename("05_analysis_1_files", file.path("../results", "05_analysis_1_files"))
+
+
+quarto_render(input = "06_analysis_2.qmd")
+file.rename("06_analysis_2.html","../results/06_analysis_2.html")
+file.rename("06_analysis_2_files", file.path("../results", "06_analysis_2_files"))
+```

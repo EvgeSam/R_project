@@ -1,0 +1,108 @@
+---
+title: "03_augment"
+format: html
+editor: visual
+---
+
+## Load libraries
+
+```{r setup, warning = FALSE , message=FALSE}
+
+library("tidyverse")
+library("here")
+```
+
+## Load the data
+
+```{r}
+
+count_data_clean = read_tsv(here("data/02_count_data_clean.tsv"),
+                      show_col_types = FALSE)
+
+clinical_data_clean = read_tsv(here("data/02_clinical_data_clean.tsv"),
+                         show_col_types = FALSE)
+```
+
+## Add new variables
+
+```{r}
+
+# Augment the clinical data with new variables
+
+clinical_data_augment <- clinical_data_clean |>
+  mutate(smoker_groups = case_when(
+    pack_years_smoked.exposures < 20 ~ "light",
+    pack_years_smoked.exposures >= 20 & pack_years_smoked.exposures < 40 ~ "medium",
+    pack_years_smoked.exposures >= 40 ~ "heavy",
+    is.na(pack_years_smoked.exposures) ~ "No information"))
+```
+
+```{r}
+
+# Convert smoker groups to a factor with specified levels
+
+clinical_data_augment <- clinical_data_augment |>
+  mutate(smoker_groups = factor(smoker_groups,
+                                levels =  c("No information",
+                                            "light",
+                                            "medium",
+                                            "heavy")))
+```
+
+```{r}
+
+# Create the sample table
+
+sample_table <- clinical_data_augment |> 
+  select(sample, 
+         smoker_groups)
+```
+
+```{r}
+
+# Filter the sample table to match count data
+
+sample_table <- sample_table |>
+  semi_join(count_data_clean, 
+            by = "sample")
+```
+
+```{r}
+
+# Filter out samples with "No information" for DESeq2 analysis
+
+sample_table_DESeq <- sample_table |>
+  filter(smoker_groups != "No information")
+```
+
+## Save the files into separate tsv files in the data folder
+
+```{r}
+
+write_tsv(clinical_data_augment,
+          here("data/03_clinical_data_augment.tsv"))
+```
+
+```{r}
+
+write_tsv(sample_table_DESeq,
+          here("data/03_sample_table_DESeq.tsv"))
+```
+
+## Save the files into separate rsd files in the presentation_data folder
+
+```{r}
+
+saveRDS(clinical_data_augment,         
+        file = here("doc/presentation_data/03_clinical_data_augment.rds"))
+```
+
+```{r}
+
+saveRDS(sample_table_DESeq,          
+        file = here("doc/presentation_data/03_sample_table_DESeq.rds"))
+```
+
+## In general
+
+Clean clinical data -\> Create smoking exposure groups -\> Build DESeq2 sample metadata -\> Remove unknown smoking status -\> Analysis-ready metadata!
