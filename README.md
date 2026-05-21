@@ -54,7 +54,7 @@ ggrepel
 
 ## Presentation
 
-<https://github.com/EvgeSam/R_project/main/doc/presentation.html/>
+<https://github.com/EvgeSam/R_project/tree/main/doc/presentation.html/>
 
 
 
